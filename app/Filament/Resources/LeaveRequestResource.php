@@ -12,6 +12,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Eloquent\Model; // Import tambahan untuk Hak Akses
+
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
@@ -24,6 +26,14 @@ class LeaveRequestResource extends Resource
 
     // Ikon kalender untuk merepresentasikan jadwal/cuti
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days'; 
+
+    // ==========================================
+    // TAMBAHAN UNTUK TRANSLASI BAHASA INDONESIA
+    // ==========================================
+    protected static ?string $navigationLabel = 'Pengajuan Cuti / Izin';
+    protected static ?string $modelLabel = 'Cuti / Izin';
+    protected static ?string $pluralModelLabel = 'Data Pengajuan Cuti';
+    // ==========================================
 
     public static function form(Form $form): Form
     {
@@ -136,6 +146,29 @@ class LeaveRequestResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    // ==========================================
+    // PEMBATASAN HAK AKSES (HANYA UNTUK ADMIN)
+    // ==========================================
+    public static function canCreate(): bool
+    {
+        return auth()->user()->role === 'admin';
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->role === 'admin';
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()->role === 'admin';
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()->role === 'admin';
     }
 
     public static function getRelations(): array

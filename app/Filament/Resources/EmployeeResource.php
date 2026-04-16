@@ -12,7 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Database\Eloquent\Model; // Import tambahan untuk parameter Model
+use Illuminate\Database\Eloquent\Model; 
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
@@ -25,6 +25,14 @@ class EmployeeResource extends Resource
     protected static ?string $model = Employee::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
+
+    // ==========================================
+    // TAMBAHAN UNTUK TRANSLASI BAHASA INDONESIA
+    // ==========================================
+    protected static ?string $navigationLabel = 'Data Karyawan';
+    protected static ?string $modelLabel = 'Karyawan';
+    protected static ?string $pluralModelLabel = 'Data Karyawan';
+    // ==========================================
 
     public static function form(Form $form): Form
     {
@@ -42,10 +50,9 @@ class EmployeeResource extends Resource
                     ->label('Jabatan')
                     ->required(),
                 TextInput::make('department')
-                    ->label('Departemen')
+                    ->label('Bagian / Unit') // Disesuaikan dengan istilah pabrik
                     ->required(),
                 
-                // FileUpload yang telah diperbaiki pengaturannya
                 FileUpload::make('photo')
                     ->label('Foto Karyawan')
                     ->image()
@@ -53,11 +60,10 @@ class EmployeeResource extends Resource
                     ->imageEditor()
                     ->circleCropper()
                     ->required()
-                    // Optimasi tambahan
-                    ->preserveFilenames() // Mempertahankan nama file asli jika diinginkan
+                    ->preserveFilenames() 
                     ->removeUploadedFileButtonPosition('right') 
                     ->uploadingMessage('Sedang mengunggah...')
-                    ->columnSpanFull(), // Agar tampilan upload lebih lega (opsional)
+                    ->columnSpanFull(), 
             ]);
     }
 
@@ -78,7 +84,7 @@ class EmployeeResource extends Resource
                     ->label('Jabatan')
                     ->searchable(),
                 TextColumn::make('department')
-                    ->label('Departemen')
+                    ->label('Bagian / Unit') // Disesuaikan dengan istilah pabrik
                     ->searchable(),
             ])
             ->filters([
@@ -87,12 +93,10 @@ class EmployeeResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 
-                // Tombol Cetak ID Card yang benar
                 Action::make('cetak_id')
                     ->label('Cetak ID Card')
                     ->icon('heroicon-o-printer')
                     ->color('success')
-                    // Ini kunci utamanya: mengirimkan ID ($record->id) yang benar ke URL
                     ->url(fn (Employee $record): string => url('/employee/print-id/' . $record->id))
                     ->openUrlInNewTab(),
             ])
@@ -103,29 +107,21 @@ class EmployeeResource extends Resource
             ]);
     }
 
-    // ==========================================
-    // PEMBATASAN HAK AKSES (HANYA UNTUK ADMIN)
-    // ==========================================
-
-    // Hanya Admin yang bisa melihat tombol "Create"
     public static function canCreate(): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Edit"
     public static function canEdit(Model $record): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Delete" satuan
     public static function canDelete(Model $record): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Bulk Delete" (Hapus banyak sekaligus)
     public static function canDeleteAny(): bool
     {
         return auth()->user()->role === 'admin';

@@ -12,19 +12,16 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Database\Eloquent\Model; // Import tambahan untuk parameter Model
+use Illuminate\Database\Eloquent\Model; 
 
-// Import untuk Columns dan Actions
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction; 
 
-// Import untuk Form Components
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TimePicker;
 
-// Import untuk Filter
 use Filament\Tables\Filters\Filter;
 
 class AttendanceResource extends Resource
@@ -32,6 +29,14 @@ class AttendanceResource extends Resource
     protected static ?string $model = Attendance::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+
+    // ==========================================
+    // TAMBAHAN UNTUK TRANSLASI BAHASA INDONESIA
+    // ==========================================
+    protected static ?string $navigationLabel = 'Data Absensi';
+    protected static ?string $modelLabel = 'Absensi';
+    protected static ?string $pluralModelLabel = 'Data Absensi';
+    // ==========================================
 
     public static function form(Form $form): Form
     {
@@ -68,7 +73,6 @@ class AttendanceResource extends Resource
     {
         return $table
             ->columns([
-                // Tambahkan kolom foto di paling atas
                 ImageColumn::make('photo_in')
                     ->label('Selfie Masuk')
                     ->circular(),
@@ -98,6 +102,7 @@ class AttendanceResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('status')
+                    ->label('Status') // Memastikan header tabel juga berbahasa Indonesia
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Hadir' => 'success',
@@ -106,7 +111,6 @@ class AttendanceResource extends Resource
                         default => 'gray',
                     }),
 
-                // Kolom Latitude & Longitude sengaja di-hide by default agar rapi
                 TextColumn::make('lat_in')
                     ->label('Latitude')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -117,7 +121,6 @@ class AttendanceResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                // FILTER TANGGAL UNTUK LAPORAN HARIAN/BULANAN
                 Filter::make('date')
                     ->form([
                         DatePicker::make('dari_tanggal')->label('Dari Tanggal'),
@@ -142,36 +145,26 @@ class AttendanceResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    
-                    // Tombol Export Excel
-                    ExportBulkAction::make(), 
+                    ExportBulkAction::make()->label('Export ke Excel'), // Menambahkan label bahasa Indonesia untuk tombol export
                 ]),
             ]);
     }
 
-    // ==========================================
-    // PEMBATASAN HAK AKSES (HANYA UNTUK ADMIN)
-    // ==========================================
-
-    // Hanya Admin yang bisa melihat tombol "Create"
     public static function canCreate(): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Edit"
     public static function canEdit(Model $record): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Delete" satuan
     public static function canDelete(Model $record): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Bulk Delete" (Hapus banyak sekaligus)
     public static function canDeleteAny(): bool
     {
         return auth()->user()->role === 'admin';

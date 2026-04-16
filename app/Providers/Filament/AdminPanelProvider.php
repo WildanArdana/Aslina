@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\AttendanceStatsWidget; // <-- Tambahan import widget
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -28,8 +29,17 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::hex('#2E7D32'),
+                'danger'  => Color::Rose,
+                'gray'    => Color::Slate,
+                'info'    => Color::Blue,
+                'success' => Color::Emerald,
+                'warning' => Color::Orange,
             ])
+            ->brandLogo(asset('storage/ptpn4-logo.jpg'))
+            ->brandLogoHeight('3rem')
+            ->brandName('PKS Adolina')
+            ->font('Poppins')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -38,7 +48,9 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                AttendanceStatsWidget::class, // <-- Widget ditambahkan ke sini
+                // Baris di bawah ini dimatikan agar logo Filament di Dashboard kanan hilang
+                // Widgets\FilamentInfoWidget::class, 
             ])
             ->middleware([
                 EncryptCookies::class,

@@ -14,13 +14,22 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Database\Eloquent\Model; // Import tambahan untuk parameter Model
+use Illuminate\Database\Eloquent\Model;
 
 class OfficeSettingResource extends Resource
 {
     protected static ?string $model = OfficeSetting::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    // Icon diganti menjadi map-pin agar sesuai dengan pengaturan Lokasi GPS
+    protected static ?string $navigationIcon = 'heroicon-o-map-pin';
+
+    // ==========================================
+    // TAMBAHAN UNTUK TRANSLASI BAHASA INDONESIA
+    // ==========================================
+    protected static ?string $navigationLabel = 'Pengaturan Kantor';
+    protected static ?string $modelLabel = 'Pengaturan Kantor';
+    protected static ?string $pluralModelLabel = 'Data Pengaturan Kantor';
+    // ==========================================
 
     public static function form(Form $form): Form
     {
@@ -44,9 +53,12 @@ class OfficeSettingResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('latitude'),
-                TextColumn::make('longitude'),
+                TextColumn::make('latitude')
+                    ->label('Latitude'),
+                TextColumn::make('longitude')
+                    ->label('Longitude'),
                 TextColumn::make('radius')
+                    ->label('Batas Radius')
                     ->suffix(' M')
                     ->badge()
                     ->color('success'),
@@ -68,25 +80,21 @@ class OfficeSettingResource extends Resource
     // PEMBATASAN HAK AKSES (HANYA UNTUK ADMIN)
     // ==========================================
 
-    // Hanya Admin yang bisa melihat tombol "Create"
     public static function canCreate(): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Edit"
     public static function canEdit(Model $record): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Delete" satuan
     public static function canDelete(Model $record): bool
     {
         return auth()->user()->role === 'admin';
     }
 
-    // Hanya Admin yang bisa melihat tombol "Bulk Delete" (Hapus banyak sekaligus)
     public static function canDeleteAny(): bool
     {
         return auth()->user()->role === 'admin';
