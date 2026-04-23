@@ -12,6 +12,9 @@ class AttendanceStatsWidget extends BaseWidget
     // Mengatur agar widget otomatis *refresh* setiap 5 detik (Real-Time)
     protected static ?string $pollingInterval = '5s';
 
+    // Tambahkan baris ini agar posisinya di bawah jam
+    protected static ?int $sort = 2; 
+
     protected function getStats(): array
     {
         $hariIni = Carbon::today();

@@ -8,6 +8,7 @@ use App\Models\OfficeSetting;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker; // <-- Tambahan import TimePicker
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -46,6 +47,14 @@ class OfficeSettingResource extends Resource
                     ->numeric()
                     ->label('Batas Radius (Meter)')
                     ->suffix('Meter'),
+                    
+                // TAMBAHAN UNTUK PENGATURAN SHIFT
+                TimePicker::make('shift1_start')
+                    ->required()
+                    ->label('Jam Masuk Shift 1'),
+                TimePicker::make('shift2_start')
+                    ->required()
+                    ->label('Jam Masuk Shift 2'),
             ]);
     }
 
@@ -54,14 +63,24 @@ class OfficeSettingResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('latitude')
-                    ->label('Latitude'),
+                    ->label('Latitude')
+                    ->toggleable(isToggledHiddenByDefault: true), // Disembunyikan agar tabel tidak terlalu penuh
                 TextColumn::make('longitude')
-                    ->label('Longitude'),
+                    ->label('Longitude')
+                    ->toggleable(isToggledHiddenByDefault: true), // Disembunyikan agar tabel tidak terlalu penuh
                 TextColumn::make('radius')
                     ->label('Batas Radius')
                     ->suffix(' M')
                     ->badge()
                     ->color('success'),
+                    
+                // TAMBAHAN AGAR SHIFT TERLIHAT DI TABEL LUAR
+                TextColumn::make('shift1_start')
+                    ->label('Jadwal Shift 1')
+                    ->time('H:i'), // Format jam dan menit saja
+                TextColumn::make('shift2_start')
+                    ->label('Jadwal Shift 2')
+                    ->time('H:i'),
             ])
             ->filters([
                 //

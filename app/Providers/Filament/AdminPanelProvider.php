@@ -2,7 +2,8 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Widgets\AttendanceStatsWidget; // <-- Tambahan import widget
+use App\Filament\Widgets\RealtimeClockWidget; // <-- Tambahan import Widget Jam
+use App\Filament\Widgets\AttendanceStatsWidget; 
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -11,12 +12,14 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook; // <-- Tambahan import Render Hook
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Blade; // <-- Tambahan import Blade
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -47,11 +50,24 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                AttendanceStatsWidget::class, // <-- Widget ditambahkan ke sini
+                // Dimatikan agar kotak Welcome hilang dari dashboard
+                // Widgets\AccountWidget::class, 
+                
+                RealtimeClockWidget::class,   // <-- Widget Jam
+                AttendanceStatsWidget::class, // <-- Widget 4 Kotak Statistik
+                
                 // Baris di bawah ini dimatikan agar logo Filament di Dashboard kanan hilang
                 // Widgets\FilamentInfoWidget::class, 
             ])
+            ->renderHook( // <-- TAMBAHAN KODE UNTUK TEKS DI BAWAH LOGO
+                PanelsRenderHook::SIDEBAR_NAV_START,
+                fn (): string => Blade::render('
+                    <div class="text-center pb-4 border-b border-gray-200 dark:border-gray-700 mb-2">
+                        <h2 class="text-md font-bold text-green-700 tracking-wider">ABSENSI PTPN IV</h2>
+                        <p class="text-xs text-gray-500">Unit PKS Adolina</p>
+                    </div>
+                ')
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
