@@ -12,15 +12,16 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\View\PanelsRenderHook; // <-- Tambahan import Render Hook
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Support\Facades\Blade; // <-- Tambahan import Blade
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Illuminate\Support\HtmlString; // <-- Import HtmlString
+use Filament\View\PanelsRenderHook; // <-- Import PanelsRenderHook
+use Illuminate\Support\Facades\Blade; // <-- Import Blade
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -34,7 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::hex('#2E7D32'),
                 'danger'  => Color::Rose,
-                // PERUBAHAN: Spektrum warna 'gray' diganti ke skala Emerald
+                // Spektrum warna 'gray' diganti ke skala Emerald
                 // untuk memberikan efek background hijau pada tema terang
                 'gray'    => [
                     '50' => '#f0fdf4', 
@@ -53,9 +54,70 @@ class AdminPanelProvider extends PanelProvider
                 'success' => Color::Emerald,
                 'warning' => Color::Orange,
             ])
-            ->brandLogo(asset('storage/ptpn4-logo.jpg'))
-            ->brandLogoHeight('3rem')
-            ->brandName('PKS Adolina')
+            // KODE LOGO (Teks Berwarna Putih & Logo diberi background putih)
+            ->brandName(new HtmlString('
+                <div class="flex items-center gap-3 -ml-2">
+                    <img src="' . asset('storage/ptpn4-logo.jpg') . '" alt="Logo PTPN IV" class="h-10 w-auto bg-white p-1 rounded-md">
+                    <div class="flex flex-col text-left">
+                        <span class="text-sm font-bold text-white tracking-wider leading-tight">ABSENSI PTPN IV</span>
+                        <span class="text-xs text-green-100 font-normal mt-0.5">Unit PKS Adolina</span>
+                    </div>
+                </div>
+            '))
+            
+            // KODE CSS PENYEMPURNAAN (Menu Aktif menjadi Putih)
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => Blade::render('
+                    <style>
+                        /* Mewarnai Sidebar Kiri menjadi Hijau Tua */
+                        aside.fi-sidebar {
+                            background-color: #15803d !important;
+                            border-right: none !important;
+                        }
+                        
+                        /* ========================================== */
+                        /* KONDISI NORMAL: Teks & Ikon Putih          */
+                        /* ========================================== */
+                        aside.fi-sidebar .fi-sidebar-item-label,
+                        aside.fi-sidebar .fi-sidebar-item-icon {
+                            color: #ffffff !important;
+                        }
+                        
+                        /* Efek Hover (Saat kursor di atas menu) */
+                        aside.fi-sidebar .fi-sidebar-item-button:hover {
+                            background-color: rgba(255, 255, 255, 0.15) !important;
+                        }
+
+                        /* ========================================== */
+                        /* KONDISI AKTIF: Latar Putih & Teks Hijau    */
+                        /* ========================================== */
+                        aside.fi-sidebar .fi-sidebar-item-active > a,
+                        aside.fi-sidebar .fi-sidebar-item-active button {
+                            background-color: #ffffff !important;
+                            border-radius: 0.5rem !important; /* Membuat sudutnya membulat rapi */
+                        }
+                        
+                        aside.fi-sidebar .fi-sidebar-item-active .fi-sidebar-item-label,
+                        aside.fi-sidebar .fi-sidebar-item-active .fi-sidebar-item-icon {
+                            color: #15803d !important; /* Teks berubah hijau agar kontras */
+                            font-weight: 700 !important;
+                        }
+
+                        /* ========================================== */
+                        /* AREA KANAN: Konten & Topbar Putih Bersih   */
+                        /* ========================================== */
+                        main.fi-main {
+                            background-color: #ffffff !important;
+                        }
+                        
+                        header.fi-topbar {
+                            background-color: #ffffff !important;
+                            border-bottom: 1px solid #f3f4f6 !important;
+                        }
+                    </style>
+                ')
+            )
             ->font('Poppins')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -73,15 +135,6 @@ class AdminPanelProvider extends PanelProvider
                 // Baris di bawah ini dimatikan agar logo Filament di Dashboard kanan hilang
                 // Widgets\FilamentInfoWidget::class, 
             ])
-            ->renderHook( // <-- TAMBAHAN KODE UNTUK TEKS DI BAWAH LOGO
-                PanelsRenderHook::SIDEBAR_NAV_START,
-                fn (): string => Blade::render('
-                    <div class="text-center pb-4 border-b border-gray-200 dark:border-gray-700 mb-2">
-                        <h2 class="text-md font-bold text-green-700 tracking-wider">ABSENSI PTPN IV</h2>
-                        <p class="text-xs text-gray-500">Unit PKS Adolina</p>
-                    </div>
-                ')
-            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

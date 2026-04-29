@@ -9,17 +9,13 @@ use Carbon\Carbon;
 
 class AttendanceStatsWidget extends BaseWidget
 {
-    // Mengatur agar widget otomatis *refresh* setiap 5 detik (Real-Time)
     protected static ?string $pollingInterval = '5s';
-
-    // Tambahkan baris ini agar posisinya di bawah jam
-    protected static ?int $sort = 2; 
+    protected static ?int $sort = 2; // Mengunci posisi di bawah jam
 
     protected function getStats(): array
     {
         $hariIni = Carbon::today();
 
-        // Mengambil data absensi khusus HARI INI
         $totalAbsensi = Attendance::whereDate('date', $hariIni)->count();
         
         $tepatWaktu = Attendance::whereDate('date', $hariIni)
@@ -35,22 +31,22 @@ class AttendanceStatsWidget extends BaseWidget
             Stat::make('Total Absensi', $totalAbsensi)
                 ->description('Kehadiran hari ini')
                 ->descriptionIcon('heroicon-m-users')
-                ->color('info'),
+                ->color('info'), // Warna Biru
                 
             Stat::make('Tepat Waktu', $tepatWaktu)
                 ->description('Masuk sesuai jadwal')
                 ->descriptionIcon('heroicon-m-check-circle')
-                ->color('success'),
+                ->color('success'), // Warna Hijau
                 
             Stat::make('Terlambat', $terlambat)
                 ->description('Melewati jam masuk')
                 ->descriptionIcon('heroicon-m-exclamation-circle')
-                ->color('danger'),
+                ->color('danger'), // Warna Merah
                 
             Stat::make('Sudah Pulang', $sudahPulang)
                 ->description('Telah melakukan absen pulang')
                 ->descriptionIcon('heroicon-m-arrow-right-on-rectangle')
-                ->color('primary'),
+                ->color('success'), // Warna Hijau
         ];
     }
 }
