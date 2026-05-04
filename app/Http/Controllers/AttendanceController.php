@@ -12,7 +12,7 @@ class AttendanceController extends Controller
 {
     public function scan(Request $request)
     {
-        // 1. Validasi Input
+        // 1. Validasi Input dari Scanner
         $request->validate([
             'uid' => 'required',
             'latitude' => 'required',
@@ -21,13 +21,13 @@ class AttendanceController extends Controller
             'photo' => 'nullable|string' // Berupa base64 string
         ]);
 
-        // 2. Ambil Pengaturan dari Database (Sekaligus untuk Geofencing dan Shift)
+        // 2. Ambil Pengaturan dari Database (Geofencing dan Jam Shift)
         $setting = OfficeSetting::first();
         if (!$setting) {
             return response()->json(['status' => 'error', 'message' => 'Admin belum mengatur titik kordinat kantor dan shift!']);
         }
 
-        // 3. Pecah UID jika digabung dengan nama
+        // 3. Pecah UID (Jika format QR adalah "UID - Nama")
         $qrData = explode(' - ', $request->uid);
         $uidAsli = $qrData[0]; 
 
@@ -36,7 +36,7 @@ class AttendanceController extends Controller
             return response()->json(['status' => 'error', 'message' => 'QR Code tidak terdaftar!']);
         }
 
-        // 4. Hitung Jarak Geofencing
+        // 4. Hitung Jarak Geofencing (Radius Pabrik/Kantor)
         $distance = $this->calculateDistance($setting->latitude, $setting->longitude, $request->latitude, $request->longitude);
         if ($distance > $setting->radius) {
             return response()->json([
@@ -47,31 +47,66 @@ class AttendanceController extends Controller
 
         // 5. Inisialisasi Waktu (Zona Waktu WIB)
         $waktuSekarang = Carbon::now('Asia/Jakarta');
-        $today = $waktuSekarang->toDateString(); // Tanggal hari ini
-        $jamSekarang = $waktuSekarang->format('H:i:s'); // Jam saat ini
+        $tanggalHariIni = $waktuSekarang->format('Y-m-d');
+        $jamSekarang = $waktuSekarang->format('H:i:s');
 
-        // Cek absen hari ini
-        $attendance = Attendance::where('employee_id', $employee->id)->where('date', $today)->first();
+        // 6. CEK APAKAH KARYAWAN SUDAH ABSEN MASUK HARI INI?
+        $absensiHariIni = Attendance::where('employee_id', $employee->id)
+                            ->whereDate('date', $tanggalHariIni)
+                            ->first();
 
-        if (!$attendance) {
+        if ($absensiHariIni) {
             // ==========================================
-            // JIKA BELUM ABSEN SAMA SEKALI -> ABSEN MASUK
+            // LOGIKA ABSEN PULANG
+            // ==========================================
+
+            // A. Cek apakah sudah pernah absen pulang? (Mencegah scan berkali-kali)
+            if ($absensiHariIni->time_out !== null) {
+                return response()->json(['status' => 'warning', 'message' => 'Anda sudah melakukan absen masuk dan pulang hari ini!']);
+            }
+
+            // B. ATURAN WAJIB: TIDAK BOLEH PULANG CEPAT (DINAMIS DARI ADMIN)
+            if ($setting) {
+                if ($absensiHariIni->shift === 'Shift 1' && $setting->shift1_end) {
+                    $batasPulangShift1 = Carbon::parse($setting->shift1_end)->format('H:i:s');
+                    
+                    if ($jamSekarang < $batasPulangShift1) {
+                        return response()->json(['status' => 'error', 'message' => 'Gagal Absen! Belum waktunya pulang untuk Shift 1. Jadwal pulang: ' . $batasPulangShift1]);
+                    }
+                } 
+                elseif ($absensiHariIni->shift === 'Shift 2' && $setting->shift2_end) {
+                    $batasPulangShift2 = Carbon::parse($setting->shift2_end)->format('H:i:s');
+                    
+                    if ($jamSekarang < $batasPulangShift2) {
+                        return response()->json(['status' => 'error', 'message' => 'Gagal Absen! Belum waktunya pulang untuk Shift 2. Jadwal pulang: ' . $batasPulangShift2]);
+                    }
+                }
+            }
+
+            // C. Jika lolos pengecekan di atas (sudah waktunya pulang), simpan datanya:
+            $absensiHariIni->update([
+                'time_out' => $jamSekarang,
+                'lat_out' => $request->latitude,
+                'long_out' => $request->longitude,
+            ]);
+
+            return response()->json(['status' => 'success', 'message' => 'Absen PULANG Berhasil! Hati-hati di jalan.']);
+
+        } else {
+            // ==========================================
+            // LOGIKA ABSEN MASUK
             // ==========================================
             $statusKehadiran = 'Hadir'; // Default Tepat Waktu
 
-            // 6. Logika Penentuan Terlambat (DINAMIS DARI DATABASE)
+            // Logika Keterlambatan Dinamis dari Database (Toleransi 15 Menit)
             if ($request->shift === 'Shift 1' && $setting->shift1_start) {
-                // Tambah toleransi 15 menit dari jam yang disetting admin
-                $batasShift1 = Carbon::parse($setting->shift1_start)->addMinutes(15)->format('H:i');
-                
-                if ($waktuSekarang->format('H:i') > $batasShift1) {
+                $batasShift1 = Carbon::parse($setting->shift1_start)->addMinutes(15)->format('H:i:s');
+                if ($jamSekarang > $batasShift1) {
                     $statusKehadiran = 'Terlambat';
                 }
             } elseif ($request->shift === 'Shift 2' && $setting->shift2_start) {
-                // Tambah toleransi 15 menit dari jam yang disetting admin
-                $batasShift2 = Carbon::parse($setting->shift2_start)->addMinutes(15)->format('H:i');
-                
-                if ($waktuSekarang->format('H:i') > $batasShift2) {
+                $batasShift2 = Carbon::parse($setting->shift2_start)->addMinutes(15)->format('H:i:s');
+                if ($jamSekarang > $batasShift2) {
                     $statusKehadiran = 'Terlambat';
                 }
             }
@@ -80,42 +115,26 @@ class AttendanceController extends Controller
             Attendance::create([
                 'employee_id' => $employee->id,
                 'shift' => $request->shift,
-                'date' => $today,
+                'date' => $tanggalHariIni,
                 'time_in' => $jamSekarang,
                 'lat_in' => $request->latitude,
                 'long_in' => $request->longitude,
                 'photo_in' => $request->photo,
-                'status' => $statusKehadiran // Otomatis terisi Hadir / Terlambat berdasarkan pengecekan dinamis
+                'status' => $statusKehadiran 
             ]);
 
-            // Pesan respon menyesuaikan dengan status
-            $pesan = $statusKehadiran == 'Terlambat' 
+            // Pesan respon menyesuaikan dengan status Keterlambatan
+            $pesan = $statusKehadiran === 'Terlambat' 
                 ? 'Absen MASUK Berhasil, namun Anda Terlambat!' 
                 : 'Absen MASUK Berhasil! Selamat bekerja.';
 
             return response()->json(['status' => 'success', 'message' => $pesan]);
-        
-        } elseif ($attendance && $attendance->time_out == null) {
-            // ==========================================
-            // JIKA SUDAH MASUK TAPI BELUM PULANG -> PULANG
-            // ==========================================
-            $attendance->update([
-                'time_out' => $jamSekarang,
-                'lat_out' => $request->latitude,
-                'long_out' => $request->longitude,
-            ]);
-
-            return response()->json(['status' => 'success', 'message' => 'Absen PULANG Berhasil! Hati-hati di jalan.']);
-        
-        } else {
-            // ==========================================
-            // JIKA SUDAH ABSEN MASUK & PULANG
-            // ==========================================
-            return response()->json(['status' => 'warning', 'message' => 'Anda sudah melakukan absen masuk dan pulang hari ini.']);
         }
     }
 
-    // Fungsi Haversine Formula untuk menghitung jarak antara 2 titik GPS dalam METER
+    // ==========================================
+    // FUNGSI PENGHITUNG JARAK (HAVERSINE FORMULA)
+    // ==========================================
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
         $earthRadius = 6371000; // Radius bumi dalam meter
@@ -129,6 +148,6 @@ class AttendanceController extends Controller
 
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
-        return $earthRadius * $c; // Hasil dalam meter
+        return $earthRadius * $c; // Hasil akhir berbentuk meter
     }
 }

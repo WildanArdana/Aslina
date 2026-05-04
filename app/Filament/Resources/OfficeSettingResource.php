@@ -8,7 +8,7 @@ use App\Models\OfficeSetting;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\TimePicker; // <-- Tambahan import TimePicker
+use Filament\Forms\Components\TimePicker;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -25,7 +25,7 @@ class OfficeSettingResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
     // ==========================================
-    // TAMBAHAN UNTUK TRANSLASI BAHASA INDONESIA
+    // TRANSLASI BAHASA INDONESIA
     // ==========================================
     protected static ?string $navigationLabel = 'Pengaturan Kantor';
     protected static ?string $modelLabel = 'Pengaturan Kantor';
@@ -48,13 +48,22 @@ class OfficeSettingResource extends Resource
                     ->label('Batas Radius (Meter)')
                     ->suffix('Meter'),
                     
-                // TAMBAHAN UNTUK PENGATURAN SHIFT
+                // ==========================================
+                // PENGATURAN SHIFT MASUK & PULANG
+                // ==========================================
                 TimePicker::make('shift1_start')
                     ->required()
                     ->label('Jam Masuk Shift 1'),
+                TimePicker::make('shift1_end') // <-- Tambahan Jam Pulang
+                    ->required()
+                    ->label('Jam Pulang Shift 1'),
+
                 TimePicker::make('shift2_start')
                     ->required()
                     ->label('Jam Masuk Shift 2'),
+                TimePicker::make('shift2_end') // <-- Tambahan Jam Pulang
+                    ->required()
+                    ->label('Jam Pulang Shift 2'),
             ]);
     }
 
@@ -74,13 +83,24 @@ class OfficeSettingResource extends Resource
                     ->badge()
                     ->color('success'),
                     
-                // TAMBAHAN AGAR SHIFT TERLIHAT DI TABEL LUAR
+                // ==========================================
+                // TAMPILAN SHIFT DI TABEL
+                // ==========================================
                 TextColumn::make('shift1_start')
-                    ->label('Jadwal Shift 1')
-                    ->time('H:i'), // Format jam dan menit saja
+                    ->label('Masuk Shift 1')
+                    ->time('H:i'), 
+                TextColumn::make('shift1_end') // <-- Tambahan Jam Pulang di Tabel
+                    ->label('Pulang Shift 1')
+                    ->time('H:i')
+                    ->color('danger'), // Diberi warna agar beda secara visual dengan jam masuk
+
                 TextColumn::make('shift2_start')
-                    ->label('Jadwal Shift 2')
+                    ->label('Masuk Shift 2')
                     ->time('H:i'),
+                TextColumn::make('shift2_end') // <-- Tambahan Jam Pulang di Tabel
+                    ->label('Pulang Shift 2')
+                    ->time('H:i')
+                    ->color('danger'),
             ])
             ->filters([
                 //
