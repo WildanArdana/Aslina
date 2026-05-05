@@ -81,6 +81,14 @@ class AttendanceController extends Controller
                         return response()->json(['status' => 'error', 'message' => 'Gagal Absen! Belum waktunya pulang untuk Shift 2. Jadwal pulang: ' . $batasPulangShift2]);
                     }
                 }
+                // --- TAMBAHAN UNTUK STAF KANTOR (NON-SHIFT) ---
+                elseif ($absensiHariIni->shift === 'Staf Kantor' && $setting->office_end) {
+                    $batasPulangKantor = Carbon::parse($setting->office_end)->format('H:i:s');
+                    
+                    if ($jamSekarang < $batasPulangKantor) {
+                        return response()->json(['status' => 'error', 'message' => 'Gagal Absen! Belum waktunya pulang untuk Staf Kantor. Jadwal pulang: ' . $batasPulangKantor]);
+                    }
+                }
             }
 
             // C. Jika lolos pengecekan di atas (sudah waktunya pulang), simpan datanya:
@@ -107,6 +115,13 @@ class AttendanceController extends Controller
             } elseif ($request->shift === 'Shift 2' && $setting->shift2_start) {
                 $batasShift2 = Carbon::parse($setting->shift2_start)->addMinutes(15)->format('H:i:s');
                 if ($jamSekarang > $batasShift2) {
+                    $statusKehadiran = 'Terlambat';
+                }
+            } 
+            // --- TAMBAHAN UNTUK STAF KANTOR (NON-SHIFT) ---
+            elseif ($request->shift === 'Staf Kantor' && $setting->office_start) {
+                $batasKantor = Carbon::parse($setting->office_start)->addMinutes(15)->format('H:i:s');
+                if ($jamSekarang > $batasKantor) {
                     $statusKehadiran = 'Terlambat';
                 }
             }

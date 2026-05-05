@@ -14,11 +14,16 @@
         <h2 class="text-2xl font-bold mb-2">Sistem Absensi</h2>
         <p class="text-gray-500 mb-6">PT Perkebunan Nusantara IV PKS Adolina</p>
 
+        <!-- ========================================== -->
+        <!-- BAGIAN PILIHAN SHIFT (SUDAH DIPERBARUI) -->
+        <!-- ========================================== -->
         <div class="mb-4 text-left">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Shift Kerja:</label>
+            <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Shift Kerja <span class="text-red-500">*</span></label>
             <select id="shift-select" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="" disabled selected>-- Pilih Shift / Bagian --</option>
                 <option value="Shift 1">Shift 1 (Pagi)</option>
                 <option value="Shift 2">Shift 2 (Malam)</option>
+                <option value="Staf Kantor">Staf Kantor (Non-Shift)</option>
             </select>
         </div>
 
@@ -69,6 +74,12 @@
                 
                 // 1. Ambil pilihan shift
                 let selectedShift = document.getElementById('shift-select').value;
+
+                // Validasi agar karyawan memilih shift terlebih dahulu
+                if (!selectedShift) {
+                    Swal.fire('Peringatan', 'Silakan pilih Shift / Bagian Anda terlebih dahulu sebelum scan QR!', 'warning');
+                    return; // Hentikan proses jika belum memilih
+                }
 
                 // 2. Ambil jepretan foto dari kamera (Selfie otomatis)
                 let video = document.querySelector('#reader video');

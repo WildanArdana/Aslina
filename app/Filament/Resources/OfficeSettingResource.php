@@ -64,6 +64,16 @@ class OfficeSettingResource extends Resource
                 TimePicker::make('shift2_end') // <-- Tambahan Jam Pulang
                     ->required()
                     ->label('Jam Pulang Shift 2'),
+
+                // ==========================================
+                // PENGATURAN JAM KERJA STAF KANTOR (NON-SHIFT)
+                // ==========================================
+                TimePicker::make('office_start')
+                    ->required()
+                    ->label('Jam Masuk Staf Kantor (Non-Shift)'),
+                TimePicker::make('office_end')
+                    ->required()
+                    ->label('Jam Pulang Staf Kantor (Non-Shift)'),
             ]);
     }
 
@@ -99,6 +109,17 @@ class OfficeSettingResource extends Resource
                     ->time('H:i'),
                 TextColumn::make('shift2_end') // <-- Tambahan Jam Pulang di Tabel
                     ->label('Pulang Shift 2')
+                    ->time('H:i')
+                    ->color('danger'),
+
+                // ==========================================
+                // TAMPILAN JAM KERJA STAF KANTOR DI TABEL
+                // ==========================================
+                TextColumn::make('office_start')
+                    ->label('Masuk Staf (Non-Shift)')
+                    ->time('H:i'),
+                TextColumn::make('office_end')
+                    ->label('Pulang Staf (Non-Shift)')
                     ->time('H:i')
                     ->color('danger'),
             ])

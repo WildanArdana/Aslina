@@ -15,5 +15,7 @@ class OfficeSetting extends Model
         'shift2_start', // <-- Tambahan untuk jadwal masuk Shift 2
         'shift1_end', // <-- Tambahan Jam Pulang Shift 1
         'shift2_end', // <-- Tambahan Jam Pulang Shift 2
+        'office_start', // <-- Tambahan untuk Staf Kantor
+        'office_end',   // <-- Tambahan untuk Staf Kantor
     ];
 }
