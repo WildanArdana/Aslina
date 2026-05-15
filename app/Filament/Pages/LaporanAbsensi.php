@@ -14,7 +14,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use Filament\Tables\Enums\FiltersLayout; // Import ini wajib untuk mengeluarkan filter ke atas
+use Filament\Tables\Enums\FiltersLayout;
 
 class LaporanAbsensi extends Page implements HasTable
 {
@@ -25,7 +25,6 @@ class LaporanAbsensi extends Page implements HasTable
     protected static ?string $title = 'Laporan Absensi';
     protected static string $view = 'filament.pages.laporan-absensi';
 
-    // Menambahkan Sub-judul (Teks abu-abu di bawah judul Laporan Absensi)
     public function getSubheading(): ?string
     {
         return 'Lihat dan export laporan absensi berdasarkan periode';
@@ -41,39 +40,32 @@ class LaporanAbsensi extends Page implements HasTable
         return $table
             ->query(Attendance::query())
             ->columns([
-                // Kolom 1: Nomor Urut (Otomatis)
                 TextColumn::make('rowIndex')
                     ->label('No')
                     ->rowIndex(),
                     
-                // Kolom 2: Tanggal (Format: Sabtu, 6 Desember 2025)
                 TextColumn::make('date')
                     ->label('Tanggal')
                     ->date('l, d F Y') 
                     ->sortable(),
                     
-                // Kolom 3: Nama Karyawan
                 TextColumn::make('employee.name')
                     ->label('Nama')
                     ->searchable(),
                     
-                // Kolom 4: Role (Kita gunakan Bagian/Unit agar relevan dengan PKS Adolina)
                 TextColumn::make('employee.department')
                     ->label('Role (Bagian)')
                     ->badge(),
                     
-                // Kolom 5: Jam Masuk
                 TextColumn::make('time_in')
                     ->label('Jam Masuk')
                     ->time('H:i:s'),
                     
-                // Kolom 6: Jam Keluar / Pulang
                 TextColumn::make('time_out')
                     ->label('Jam Keluar')
                     ->time('H:i:s')
-                    ->default('-'), // Menampilkan strip jika belum pulang
+                    ->default('-'),
                     
-                // Kolom 7: Status Kehadiran
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -86,11 +78,7 @@ class LaporanAbsensi extends Page implements HasTable
             ])
             ->defaultSort('date', 'desc')
             
-            // ==========================================
-            // BAGIAN FILTER YANG DIKELUARKAN KE ATAS
-            // ==========================================
             ->filters([
-                // Gabungan Tanggal Mulai & Akhir
                 Filter::make('tanggal')
                     ->form([
                         DatePicker::make('dari_tanggal')->label('Tanggal Mulai'),
@@ -107,12 +95,21 @@ class LaporanAbsensi extends Page implements HasTable
                                 fn (Builder $query, $date): Builder => $query->whereDate('date', '<=', $date),
                             );
                     })
-                    ->columns(2), // Membuat kedua tanggal ini bersebelahan
+                    ->columns(2),
 
-                // Filter Role (Menggunakan Bagian/Unit Karyawan)
+                // ==========================================
+                // FILTER ROLE / BAGIAN (DINAMIS DARI DATA KARYAWAN)
+                // ==========================================
                 SelectFilter::make('department')
                     ->label('Pilih Role / Bagian')
-                    ->options(fn () => Employee::select('department')->distinct()->pluck('department', 'department')->toArray())
+                    ->options(function () {
+                        // Mengambil data departemen dari tabel karyawan secara otomatis
+                        return Employee::whereNotNull('department')
+                            ->where('department', '!=', '')
+                            ->distinct()
+                            ->pluck('department', 'department')
+                            ->toArray();
+                    })
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['value'],
@@ -122,12 +119,9 @@ class LaporanAbsensi extends Page implements HasTable
                             )
                         );
                     }),
-            ], layout: FiltersLayout::AboveContent) // KUNCI UTAMA: Memindahkan filter ke atas tabel
-            ->filtersFormColumns(3) // Membagi ruang atas menjadi 3 bagian yang rapi
+            ], layout: FiltersLayout::AboveContent)
+            ->filtersFormColumns(3)
             
-            // ==========================================
-            // TOMBOL EXPORT BERWARNA HIJAU DI KANAN ATAS
-            // ==========================================
             ->headerActions([
                 ExportAction::make()
                     ->label('Export Data')
