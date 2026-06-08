@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\LeaveRequestResource\Pages;
 use App\Filament\Resources\LeaveRequestResource\RelationManagers;
 use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -19,6 +20,10 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\FileUpload;
 use Filament\Tables\Columns\TextColumn;
+
+// Import untuk logika validasi
+use Closure;
+use Illuminate\Support\Carbon;
 
 class LeaveRequestResource extends Resource
 {
@@ -43,26 +48,87 @@ class LeaveRequestResource extends Resource
                     ->relationship('employee', 'name')
                     ->label('Nama Karyawan')
                     ->required(),
-                Select::make('type')
-                    ->options([
-                        'Sakit' => 'Sakit', 
-                        'Izin' => 'Izin', 
-                        'Cuti' => 'Cuti Tahunan',
-                    ])
-                    ->label('Jenis Pengajuan')
-                    ->required(),
+                
+                Select::make('leave_type_id')
+                    ->relationship('leaveType', 'name')
+                    ->required()
+                    ->label('Pilih Jenis Cuti / Izin'),
+                
                 DatePicker::make('start_date')
                     ->label('Tanggal Mulai')
                     ->required(),
+                
                 DatePicker::make('end_date')
                     ->label('Tanggal Selesai')
-                    ->required(),
+                    ->required()
+                    // ==========================================
+                    // LOGIKA PINTAR CEK SISA KUOTA CUTI
+                    // ==========================================
+                    ->rules([
+                        function (callable $get) {
+                            return function (string $attribute, $value, Closure $fail) use ($get) {
+                                $employeeId = $get('employee_id'); 
+                                $leaveTypeId = $get('leave_type_id');
+                                $startDate = $get('start_date');
+                                $endDate = $value;
+
+                                // Pastikan semua data sudah diisi sebelum menghitung
+                                if (!$employeeId || !$leaveTypeId || !$startDate || !$endDate) return;
+
+                                $leaveType = LeaveType::find($leaveTypeId);
+                                
+                                // Jika tidak ada batas kuota (Izin Sakit), biarkan lolos
+                                if (!$leaveType || $leaveType->quota === null) return; 
+
+                                // Fungsi untuk menghitung total hari pengajuan (Senin-Sabtu masuk, Minggu libur)
+                                $calculateWorkingDays = function($start, $end) {
+                                    $days = 0;
+                                    $current = Carbon::parse($start);
+                                    $endDateObj = Carbon::parse($end);
+                                    
+                                    while ($current->lte($endDateObj)) {
+                                        // Lewati hanya hari Minggu
+                                        if (!$current->isSunday()) {
+                                            $days++;
+                                        }
+                                        $current->addDay();
+                                    }
+                                    return $days;
+                                };
+
+                                // 1. Hitung berapa hari kerja yang sedang diajukan saat ini
+                                $daysRequested = $calculateWorkingDays($startDate, $endDate);
+
+                                // 2. Hitung berapa hari jenis cuti ini sudah dipakai di tahun ini
+                                $usedDays = LeaveRequest::where('employee_id', $employeeId)
+                                    ->where('leave_type_id', $leaveTypeId)
+                                    ->whereYear('start_date', Carbon::now()->year)
+                                    // Menggunakan 'Menunggu' sesuai dengan opsi dropdown status form Anda
+                                    ->whereIn('status', ['Menunggu', 'Disetujui']) 
+                                    ->get()
+                                    ->sum(function($req) use ($calculateWorkingDays) {
+                                        return $calculateWorkingDays($req->start_date, $req->end_date);
+                                    });
+
+                                // 3. Logika Penolakan
+                                if (($usedDays + $daysRequested) > $leaveType->quota) {
+                                    $sisa = $leaveType->quota - $usedDays;
+                                    $sisa = $sisa < 0 ? 0 : $sisa; // Hindari angka minus
+                                    
+                                    $fail("Gagal! Sisa jatah '{$leaveType->name}' karyawan ini di tahun ini hanya tinggal {$sisa} hari. Anda mencoba mengajukan {$daysRequested} hari kerja.");
+                                }
+                            };
+                        }
+                    ]),
+                
                 Textarea::make('reason')
                     ->label('Alasan')
                     ->required(),
+                
                 FileUpload::make('document_path')
                     ->directory('leave-documents')
                     ->label('Dokumen Lampiran (Opsional)'),
+                
                 Select::make('status')
                     ->options([
                         'Menunggu' => 'Menunggu', 
@@ -84,15 +150,11 @@ class LeaveRequestResource extends Resource
                     ->searchable()
                     ->sortable(),
                 
-                TextColumn::make('type')
+                // Diubah menggunakan data relasi dari leaveType.name
+                TextColumn::make('leaveType.name')
                     ->label('Jenis')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Sakit' => 'danger',
-                        'Izin' => 'warning',
-                        'Cuti' => 'success',
-                        default => 'gray',
-                    }),
+                    ->color('primary'),
 
                 TextColumn::make('start_date')
                     ->label('Mulai')
@@ -113,7 +175,7 @@ class LeaveRequestResource extends Resource
                     }),
             ])
             ->filters([
-                // Bisa tambahkan filter berdasarkan status di sini nanti
+                //
             ])
             ->actions([
                 // Action untuk melihat lampiran surat

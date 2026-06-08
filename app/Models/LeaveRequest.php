@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class LeaveRequest extends Model
 {
-    // Mengizinkan mass assignment untuk semua kolom
+    /**
+     * Mengizinkan mass assignment untuk semua kolom.
+     * Dipertahankan menggunakan $guarded agar lebih praktis.
+     */
     protected $guarded = [];
 
     /**
@@ -15,5 +18,13 @@ class LeaveRequest extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * Relasi ke model LeaveType (Setiap pengajuan cuti merujuk pada satu jenis cuti)
+     */
+    public function leaveType()
+    {
+        return $this->belongsTo(LeaveType::class);
     }
 }
